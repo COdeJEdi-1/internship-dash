@@ -7,3 +7,9 @@ networkx
 pyvis
 nltk
 reportlab
+transformers
+torch
+vaderSentiment
+scikit-learn
+sentencepiece
+protobuf==3.20
