@@ -189,7 +189,7 @@ if domain1:
             index.add(vectors)
             return index, docs
     
-        index, docs = build_index(filtered)
+        index, docs = build_index(filtered, embedder)
     
         question = st.text_input("Ask a question (e.g., 'Why did activity spike in Feb?'):")
     
