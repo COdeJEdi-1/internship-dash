@@ -173,9 +173,9 @@ if domain1:
     # Chatbot Assistant
     # -------------------------------
     st.subheader("💬 Ask the Dataset Anything")
-
+    
     if len(filtered) > 5:
-
+    
         @st.cache_data
         def build_index(df):
             docs = df["title"].tolist()
@@ -183,45 +183,35 @@ if domain1:
             index = faiss.IndexFlatL2(vectors.shape[1])
             index.add(vectors)
             return index, docs
-
+    
         index, docs = build_index(filtered)
-
-        question = st.text_input("Ask a question (e.g., 'Why is this domain increasing in Feb?'):")
-
+    
+        question = st.text_input("Ask a question (e.g., 'Why did activity spike in Feb?'):")
+    
         if question:
             q_vec = embedder.encode([question])
             scores, result_ids = index.search(q_vec, k=5)
             matched_texts = "\n".join([f"- {docs[i]}" for i in result_ids[0]])
-
+    
             prompt = f"""
-            You are a Reddit trend analyst. Based on these posts and analytics below,
-            answer the question clearly and concisely.
-
-            Question:
-            {question}
-
-            Relevant Posts:
+            Question: {question}
+    
+            Relevant Reddit posts:
             {matched_texts}
-
-            Stats:
-            - Total posts: {len(filtered)}
-            - Avg sentiment: {filtered['sentiment'].mean():.2f}
-            - Dominant emotion: {filtered['emotion'].value_counts().idxmax()}
-            - Key subreddit: {filtered['subreddit'].value_counts().idxmax()}
-
-            Provide:
-            1. A direct answer
-            2. One additional insight the user didn't ask for
+    
+            Based on sentiment, toxicity, subreddit activity, and clustering insights:
+            Provide a short, factual analysis plus one additional insight or hypothesis.
             """
-
-            with st.spinner("Analyzing..."):
-                response = qa_model(prompt)[0]['generated_text']
-
+    
+            with st.spinner("Thinking..."):
+                response = qa_model(prompt, max_length=300)[0]["generated_text"]
+    
             st.write("### 🤖 Answer")
             st.write(response)
-
+    
     else:
         st.info("Not enough data for chatbot analysis.")
+
 
 # -------------------------------
 # Domain Comparison
