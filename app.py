@@ -59,10 +59,15 @@ def compute_text_features(data):
 @st.cache_resource
 def load_chat_components():
     embedder = SentenceTransformer("all-MiniLM-L6-v2")
-    qa_model = pipeline("text-generation", model="mistralai/Mistral-7B-Instruct", max_new_tokens=300)
+
+    # lightweight model that works on HF + Streamlit Cloud
+    qa_model = pipeline(
+        "text2text-generation",
+        model="google/flan-t5-base"
+    )
+
     return embedder, qa_model
 
-embedder, qa_model = load_chat_components()
 
 # -------------------------------
 # UI
