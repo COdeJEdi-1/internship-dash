@@ -180,19 +180,21 @@ if domain1:
     
         @st.cache_data
         def build_index(df):
-            docs = df["title"].tolist()
-            vectors = embedder.encode(docs)
-            index = faiss.IndexFlatL2(vectors.shape[1])
-            index.add(vectors)
-            return index, docs
+            return df["title"].tolist()
     
-        index, docs = build_index(filtered, embedder)
+        docs = build_index(filtered)
     
-        question = st.text_input("Ask a question (e.g., 'Why did activity spike in Feb?'):")
+        # Build FAISS index live (not cached)
+        vectors = embedder.encode(docs)
+        index = faiss.IndexFlatL2(vectors.shape[1])
+        index.add(vectors)
+    
+        question = st.text_input("Ask a question:")
     
         if question:
             q_vec = embedder.encode([question])
             scores, result_ids = index.search(q_vec, k=5)
+    
             matched_texts = "\n".join([f"- {docs[i]}" for i in result_ids[0]])
     
             prompt = f"""
@@ -201,8 +203,7 @@ if domain1:
             Relevant Reddit posts:
             {matched_texts}
     
-            Based on sentiment, toxicity, subreddit activity, and clustering insights:
-            Provide a short, factual analysis plus one additional insight or hypothesis.
+            Provide: a short factual answer + 1 insight.
             """
     
             with st.spinner("Thinking..."):
@@ -213,6 +214,7 @@ if domain1:
     
     else:
         st.info("Not enough data for chatbot analysis.")
+
 
 
 # -------------------------------
