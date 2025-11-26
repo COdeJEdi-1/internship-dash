@@ -61,14 +61,11 @@ def load_chat_components():
     embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
     # lightweight model that works on HF + Streamlit Cloud
-    qa_model = pipeline(
-        "text2text-generation",
-        model="google/flan-t5-base"
-    )
+    qa_model = pipeline("text2text-generation", model="google/flan-t5-small")
 
     return embedder, qa_model
 
-
+embedder, qa_model = load_chat_components()
 # -------------------------------
 # UI
 # -------------------------------
