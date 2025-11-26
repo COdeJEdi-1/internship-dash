@@ -209,7 +209,7 @@ if domain1:
             """
     
             with st.spinner("Thinking..."):
-                response = qa_model(prompt, max_length=300)[0]["generated_text"]
+                response = qa_model(prompt, max_length=200)[0]["generated_text"]
     
             st.write("### 🤖 Answer")
             st.write(response)
