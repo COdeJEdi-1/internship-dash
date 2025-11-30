@@ -1,140 +1,243 @@
-# Link Spread Intelligence Dashboard
+# Reddit Domain Intel AI – Link Spread Intelligence Dashboard
 
-This project is my assignment submission for the SimPPL internship.  
-It is an investigative dashboard that analyses how **news domains spread across Reddit**, with a focus on:
-- which communities amplify a link
-- how discussion volume evolves over time
-- what *tone* (sentiment, emotion, toxicity) those posts carry
-- what kinds of topics/narratives they cluster into
+This project is my assignment submission for the **SimPPL Research Engineer Intern** position.
 
-The dashboard is built with **Streamlit** and hosted publicly.
+It is an investigative dashboard that analyzes how external news domains spread across Reddit.  
+The tool is designed to help researchers understand:
 
----
+- **Which communities amplify a given domain**
+- **How discussion volume evolves over time**
+- **What tone (sentiment, emotion, toxicity) the posts carry**
+- **What topics / narratives those posts cluster into**
+- **How communities, topics, emotions, and domains connect in a network**
 
-## 1. Dataset
-
-The input is a JSONL export of Reddit posts, preprocessed into `processed.csv`.  
-Each row roughly corresponds to one Reddit post, with columns such as:
-
-- `domain` – external link domain (e.g., `cnn.com`, `nypost.com`)
-- `subreddit` – community where it was posted (e.g., `politics`, `Conservative`)
-- `created_utc` – timestamp of the post
-- `title` – post title / headline text
-
-This assignment focuses on **link-level behaviour** rather than full comments.
+The dashboard is built in **Streamlit**, uses several **NLP / ML models**, and is **hosted publicly**.
 
 ---
 
-## 2. What the Dashboard Shows
+## 🔗 Live Demo & Video
 
-### 2.1 Summary Insights
-
-After you type a domain (e.g. `cnn.com` or `nypost.com`) the app shows:
-
-- **Total posts** mentioning that domain
-- **Average sentiment** (VADER compound score on titles)
-- **Average toxicity** (from a transformer toxicity classifier)
-- Optional: compare with a **second domain** on the same screen
-
-### 2.2 Time Series Trends
-
-- A **line chart of posts per day** for the selected domain  
-- When two domains are entered, a combined **“Posting Activity Comparison”** chart shows how attention rises and falls over time for both sources.
-
-This directly addresses the rubric’s requirement for **time series of number of posts** and trends.
-
-### 2.3 Communities / Subreddits
-
-- A **Top Subreddits** bar chart summarises *which communities* amplify the chosen domain the most.
-- This acts as a proxy for “communities or accounts that are key contributors” in the rubric.
-
-### 2.4 Emotion & Tone
-
-For every title, the app computes:
-
-- **Sentiment** using `vaderSentiment`  
-- **Toxicity** using `unitary/toxic-bert` (transformer classifier)  
-- **Emotion** using `cardiffnlp/twitter-roberta-base-emotion`
-
-These are aggregated into:
-
-- An **Emotion Distribution** chart, and
-- Summary cards showing **average sentiment** and **average toxicity**.
-
-This satisfies the “Apply AI/ML” requirement, using multiple transformer-based models.
-
-### 2.5 Topic Clustering (Narratives)
-
-The dashboard runs a simple topic modelling / clustering step:
-
-- Compute **TF–IDF** vectors over the titles
-- Run **KMeans** to cluster them into a small number of groups
-- Display a preview table (`title`, `cluster`) so the analyst can
-  manually inspect the main themes.
-
-This acts as a lightweight topic model and semantic grouping of narratives.
-
-### 2.6 AI Narrative Summary
-
-For each selected domain, the dashboard also generates an **“AI Summary Report”** that explains, in plain language:
-
-- how frequently the domain appears
-- whether the overall tone is positive / negative / mixed
-- which subreddit is most responsible for amplification
-- when activity peaked
-- how many topic clusters were detected
-
-This is meant for **non-technical audiences** and aligns with the rubric’s “GenAI summaries of the time-series plots” idea (implemented here as programmatic narrative rather than an external LLM API).
+- **Hosted App:** `[Insert your Streamlit URL here]`
+- **Demo Video (YouTube / Drive):** `[Insert your demo video link here]`
 
 ---
 
-## 3. How to Use the Dashboard
+## 📁 Dataset
 
-1. Open the hosted app in the browser.
-2. In **“Enter a news domain”**, type a domain like:
-   - `cnn.com`
-   - `nypost.com`
-   - `youtube.com`
-3. Optionally enter a **second domain** to compare.
-4. Scroll down to explore:
-   - Summary cards
-   - Trend Over Time
-   - Emotion Distribution
-   - Top Subreddits
-   - Topic Clustering table
-   - AI Summary Report
-   - Activity comparison for two domains
+The app expects a CSV file (e.g. `processed_with_ai.csv`) where each row corresponds to a single Reddit post.
 
-You can repeatedly change the domains to run **interactive “what-if” investigations**.
+Minimum useful columns:
+
+| Column        | Required | Description                                               | Example                          |
+|---------------|----------|-----------------------------------------------------------|----------------------------------|
+| `title`       | ✅       | Post title / headline                                    | `"Wikipedia bans 100% of..."`   |
+| `domain`      | ✅       | External link domain                                     | `"youtube.com"`, `"cnn.com"`    |
+| `subreddit`   | ✅       | Subreddit where it was posted                            | `"Anarchism"`, `"Conservative"` |
+| `created_utc` | ✅ (for time series) | Timestamp of post (will be parsed to datetime) | `"2025-02-01 15:39:27"`         |
+
+Optional precomputed columns (if present they’ll be used; if not, the app can compute them):
+
+- `sentiment` – numeric score (VADER compound)
+- `toxicity` – numeric score (0–1)
+- `emotion` – categorical label like `joy`, `anger`, `sadness`, `neutral`
 
 ---
 
-## 4. Technical Stack
+## 🧠 Features & Walkthrough
 
-- **Frontend / Dashboard:** Streamlit
-- **Data processing:** pandas
-- **Plots:** matplotlib + seaborn
-- **ML / NLP models:**
-  - `vaderSentiment` – sentiment analysis on titles
+The interface has **four main tabs** plus a configuration sidebar.
+
+### 🔧 Sidebar: Configuration & Data
+
+- **Gemini API Key** – used for:
+  - Domain-level analytical reports
+  - RAG chatbot answers
+- **Upload CSV** – upload your processed Reddit data  
+  Once uploaded, the app:
+  - Parses `created_utc` as datetime
+  - Fills in missing NLP columns if needed (sentiment, toxicity, emotion)
+
+---
+
+### 1. 🔍 Domain Analysis
+
+This tab answers:  
+> *“How is this domain being talked about across Reddit?”*
+
+You select a domain from a dropdown (e.g. `crimethinc.com`, `youtube.com`).  
+The tab shows:
+
+#### Summary Cards
+
+- **Total Posts** – how many posts mention this domain
+- **Avg Sentiment** – mean VADER compound score
+- **Avg Toxicity** – mean toxicity score from a transformer classifier
+- **Dominant Emotion** – most frequent emotion label
+
+#### Emotion Distribution
+
+A bar chart of the **emotional tone of headlines** for that domain.
+
+#### Top Subreddits
+
+A horizontal bar chart of **subreddits that share the domain most**, acting as a proxy for key amplifying communities.
+
+#### Posting Activity Over Time
+
+A line chart of daily post counts for the domain, showing when attention spikes or fades.
+
+#### AI Analytical Report (Gemini)
+
+A button `"Generate Analytical Report"` sends an aggregated prompt to **Google Gemini**.  
+It returns a short, 4-bullet **executive summary**, for example:
+
+- Overall presence and volume  
+- Niche vs mainstream spread  
+- Tone (sentiment, emotion, toxicity)  
+- High-level narrative interpretation
+
+This is aimed at **non-technical audiences**.
+
+---
+
+### 2. ⚔️ Comparison
+
+This tab lets you compare **two domains side by side** (e.g. `www.youtube.com` vs `youtu.be`).
+
+- A comparison table shows:
+  - Number of posts
+  - Average sentiment
+  - Average toxicity
+- A combined **Activity Comparison** line chart shows their volumes over time on the same axis, highlighting:
+  - Which one spikes more
+  - Differences in attention patterns
+
+---
+
+### 3. 💬 AI Chatbot (RAG)
+
+This tab lets you **chat with the dataset**.
+
+Under the hood:
+
+1. For a chosen domain, the app:
+   - Embeds all its titles using **SentenceTransformer** (`all-MiniLM-L6-v2`)
+   - Indexes them in a **FAISS** vector store
+2. When you ask a question (e.g.  
+   *“What does the dataset suggest about the emotional and political context around this domain?”*):
+   - It retrieves the **top-k similar posts**
+   - Computes aggregate signals (sentiment, toxicity, dominant emotion, most active subreddit, topic cluster)
+   - Sends a structured prompt + signals to **Gemini**
+3. Gemini responds with an **analytical paragraph** and a follow-up question, plus:
+   - A shortlist of **Top Relevant Posts** for transparency
+
+This satisfies the rubric’s requirement for:
+
+- **Chatbot querying of trends, themes, and narratives**
+- **Semantic / embedding-based retrieval beyond keyword search**
+
+---
+
+### 4. 🔗 Network Explorer
+
+This tab builds **network graphs** to explore how communities and narratives connect.
+
+Network types:
+
+1. **Subreddit ↔ Narrative Cluster (per selected domain)**
+   - KMeans clustering over titles → “topic clusters”
+   - Shows which subreddits are strongly connected to which clusters
+
+2. **Subreddit ↔ Emotion (per selected domain)**
+   - Connects subreddits to their dominant emotions around the domain
+
+3. **Domain ↔ Subreddit (Global)**
+   - Across the whole dataset, shows which domains are central for which communities
+
+Technical details:
+
+- Graphs are built with **networkx**
+- Layout and visuals rendered with **Plotly**
+- Nodes:
+  - Blue = subreddits
+  - Orange = topic clusters
+  - Green = emotions
+  - Red = domains
+- Node size scales with **number of posts**
+- Edge thickness corresponds to **relationship strength** (post count)
+
+#### Node & Edge Summaries
+
+Below the graph:
+
+- **Node Summary** – table showing node, type, total posts, cluster id, emotion
+- **Edge Summary** – table of source, target, and count
+
+#### Drill Down into a Node
+
+You can select any node (e.g. `Cluster 0` or `Anarchism`) and see **up to 50 posts** associated with it, including:
+
+- `created_utc`
+- `subreddit`
+- `domain`
+- `emotion`
+- `title`
+
+This supports qualitative inspection of the narratives behind each structural pattern.
+
+---
+
+## 🧱 Models & Libraries
+
+**Frontend / App**
+
+- `streamlit`
+- `plotly` for charts
+- `pandas`, `numpy` for data handling
+
+**NLP / ML**
+
+- `vaderSentiment` – sentiment analysis
+- `transformers` pipelines:
   - `unitary/toxic-bert` – toxicity classification
-  - `cardiffnlp/twitter-roberta-base-emotion` – emotion classification
-  - `sklearn` TF–IDF + KMeans – topic clustering
+  - `j-hartmann/emotion-english-distilroberta-base` – emotion classification
+- `sentence-transformers` – semantic embeddings for RAG
+- `scikit-learn` – `TfidfVectorizer`, `KMeans` clustering
+- `faiss` – vector similarity search
+- `networkx` – network construction
 
 ---
 
-## 5. Running Locally
+## 🏗️ Design & Thought Process
 
-```bash
-# 1. Clone repo
-git clone <YOUR_REPO_URL>
-cd <REPO_NAME>
+The system is structured to align with the SimPPL rubric:
 
-# 2. Create env (optional)
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+1. **Summary statistics & time series**  
+   Metrics + daily volume charts per domain.
 
-# 3. Install dependencies
-pip install -r requirements.txt
+2. **Communities & key contributors**  
+   Top subreddits + domain–subreddit and subreddit–cluster networks.
 
-# 4. Run the app
-streamlit run app.py
+3. **AI / ML enrichment**  
+   Multiple models for sentiment, toxicity, emotion, and clustering.
+
+4. **Interactive & multimodal querying**  
+   - Domain-level drilling
+   - Cross-domain comparisons
+   - RAG chatbot for qualitative questions
+   - Network visualizations for structure
+
+5. **Explainable outputs**  
+   - Tables and charts
+   - Node/edge summaries
+   - LLM-generated reports with retrieved titles shown explicitly
+
+---
+
+## 🚀 Running Locally
+
+1. **Clone your fork (see instructions below in the assignment guidelines).**
+2. Install dependencies:
+
+   ```bash
+   pip install -r requirements.txt
