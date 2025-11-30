@@ -10,6 +10,7 @@ from pyvis.network import Network
 import streamlit.components.v1 as components
 from sentence_transformers import SentenceTransformer
 import faiss
+from google import genai
 
 # -------------------------------
 # Load dataset
@@ -20,14 +21,29 @@ df['created_utc'] = pd.to_datetime(df['created_utc'])
 # -------------------------------
 # Load NLP Models
 # -------------------------------
-@st.cache_resource
-def load_models():
-    sentiment_model = SentimentIntensityAnalyzer()
-    toxicity_pipe = pipeline("text-classification", model="unitary/toxic-bert", truncation=True)
-    emotion_pipe = pipeline("text-classification", model="cardiffnlp/twitter-roberta-base-emotion", top_k=1)
-    return sentiment_model, toxicity_pipe, emotion_pipe
 
-sentiment_model, toxicity_pipe, emotion_pipe = load_models()
+
+@st.cache_resource
+def load_chat_components():
+    
+    embedder = SentenceTransformer("all-MiniLM-L6-v2")
+
+    gemini_model = genai.Client(api_key=st.secrets["GOOGLE_API_KEY"]) 
+
+    
+    qa_model = pipeline("text2text-generation", model="google/flan-t5-small")
+    sentiment_model = SentimentIntensityAnalyzer()
+    toxicity_pipe = pipeline("text-classification", model="unitary/toxic-bert", return_all_scores=False)
+    
+    # 4. Emotion Model (Needed for line 57)
+    emotion_pipe = pipeline("text-classification", model="j-hartmann/emotion-english-distilroberta-base")
+
+    # We return the client instead of a GenerativeModel object
+    return embedder, gemini_model, qa_model, sentiment_model, toxicity_pipe, emotion_pipe
+
+# Notice the variable name change to reflect the client object
+embedder, gemini_model, qa_model, sentiment_model, toxicity_pipe, emotion_pipe = load_chat_components()
+
 
 # -------------------------------
 # Compute NLP Features
@@ -53,19 +69,6 @@ def compute_text_features(data):
 
     return data
 
-# -------------------------------
-# Load Chatbot Components
-# -------------------------------
-@st.cache_resource
-def load_chat_components():
-    embedder = SentenceTransformer("all-MiniLM-L6-v2")
-
-    # lightweight model that works on HF + Streamlit Cloud
-    qa_model = pipeline("text2text-generation", model="google/flan-t5-small")
-
-    return embedder, qa_model
-
-embedder, qa_model = load_chat_components()
 # -------------------------------
 # UI
 # -------------------------------
@@ -189,22 +192,55 @@ if domain1:
         index = faiss.IndexFlatL2(vectors.shape[1])
         index.add(vectors)
     
-        question = st.text_input("Ask a question:")
+        question = st.text_input("Ask a question: b")
     
         if question:
             q_vec = embedder.encode([question])
             scores, result_ids = index.search(q_vec, k=5)
-    
+            
             matched_texts = "\n".join([f"- {docs[i]}" for i in result_ids[0]])
-    
+            
             prompt = f"""
-            Question: {question}
-    
-            Relevant Reddit posts:
-            {matched_texts}
-    
-            Provide: a short factual answer + 1 insight.
+            You are an analyst examining how a news domain circulates on Reddit.
+
+            Your task is to produce a structured insight based on the dataset. Follow the rules below:
+
+            RULES:
+            - Do NOT repeat the question, the context, or the titles.
+            - Do NOT mention that you are an AI model.
+            - Do NOT write placeholders like "a researcher could investigate".
+            - Base your answer ONLY on the metrics and inferred patterns.
+            - Write in an analytical tone, not conversational.
+            - Focus on explaining patterns, not summarizing content.
+            - The output must be 5–7 sentences.
+
+            USE THIS STRUCTURE:
+            1. Posting Behavior: Describe whether posting is steady or spiking, suggesting organic or event-driven spread.
+            2. Emotional and Sentiment Trend: Describe whether tone is positive, negative, mixed, or polarized.
+            3. Community Spread: Explain whether activity comes from a wide range of subreddits or a small cluster (siloed vs broad).
+            4. Narrative Themes: Use clustering and emotional cues to infer what narratives dominate the discussion.
+            5. Engagement Quality: Use toxicity and emotion to assess whether discourse is neutral, hostile, conspiratorial, or supportive.
+            6. Insight or Interpretation: Provide one sentence summarizing what the pattern suggests about how this domain circulates on Reddit.
+
+            DATA TO ANALYZE:
+            - Total posts: {len(filtered)}
+            - Avg sentiment: {filtered['sentiment'].mean():.2f}
+            - Avg toxicity: {filtered['toxicity'].mean():.2f}
+            - Dominant emotion: {filtered['emotion'].value_counts().idxmax()}
+            - Most active subreddit: {filtered['subreddit'].value_counts().idxmax()}
+            - Number of clusters: {filtered['cluster'].nunique()}
+
+            Begin analysis now.
             """
+            
+            with st.spinner("Thinking..."):
+                response = gemini_model.generate_content(prompt)
+            
+            st.write("### 🤖 Answer")
+            st.write(response.text)
+
+
+
     
             with st.spinner("Thinking..."):
                 response = qa_model(prompt, max_length=200)[0]["generated_text"]
