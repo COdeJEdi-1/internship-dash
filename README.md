@@ -1,140 +1,131 @@
 # Link Spread Intelligence Dashboard
 
-This project is my assignment submission for the SimPPL internship.  
-It is an investigative dashboard that analyses how **news domains spread across Reddit**, with a focus on:
-- which communities amplify a link
-- how discussion volume evolves over time
-- what *tone* (sentiment, emotion, toxicity) those posts carry
-- what kinds of topics/narratives they cluster into
+This project is my assignment submission for the SimPPL internship.
 
-The dashboard is built with **Streamlit** and hosted publicly.
+It is an investigative dashboard that analyzes how external links (domains) spread across Reddit, focusing on:
+
+- Which communities amplify a given link  
+- How discussion volume evolves over time  
+- What tone (sentiment, emotion, toxicity) accompanies the posts  
+- What topics or narratives they cluster into  
+
+The dashboard is built using **Streamlit** and is publicly hosted.
 
 ---
 
 ## 1. Dataset
 
-The input is a JSONL export of Reddit posts, preprocessed into `processed.csv`.  
-Each row roughly corresponds to one Reddit post, with columns such as:
+The dashboard operates on a preprocessed Reddit dataset (`processed.csv`) originating from a JSONL export.  
+Each row represents a Reddit post and contains key fields such as:
 
-- `domain` – external link domain (e.g., `cnn.com`, `nypost.com`)
-- `subreddit` – community where it was posted (e.g., `politics`, `Conservative`)
-- `created_utc` – timestamp of the post
-- `title` – post title / headline text
+| Column | Description | Example |
+|--------|-------------|---------|
+| `domain` | External link domain | `cnn.com`, `nypost.com`, `youtube.com` |
+| `subreddit` | Community where link was posted | `politics`, `Conservative` |
+| `created_utc` | Timestamp of post | `2024-05-12 16:22:01` |
+| `title` | Reddit post headline | `"Biden announces AI policy changes"` |
 
-This assignment focuses on **link-level behaviour** rather than full comments.
+The focus is on **link-level propagation**, not full comment threads.
 
 ---
 
-## 2. What the Dashboard Shows
+## 2. Dashboard Features
 
 ### 2.1 Summary Insights
+After entering a domain, the dashboard computes and displays:
 
-After you type a domain (e.g. `cnn.com` or `nypost.com`) the app shows:
+- Total number of posts
+- Average sentiment score (VADER)
+- Average toxicity (transformer-based toxicity classifier)
 
-- **Total posts** mentioning that domain
-- **Average sentiment** (VADER compound score on titles)
-- **Average toxicity** (from a transformer toxicity classifier)
-- Optional: compare with a **second domain** on the same screen
+Users can optionally compare these metrics between two domains.
 
-### 2.2 Time Series Trends
+---
 
-- A **line chart of posts per day** for the selected domain  
-- When two domains are entered, a combined **“Posting Activity Comparison”** chart shows how attention rises and falls over time for both sources.
+### 2.2 Time-Series Trends
+A visual timeline shows how frequently the selected domain appears over time.
 
-This directly addresses the rubric’s requirement for **time series of number of posts** and trends.
+If two domains are provided, a combined activity comparison chart illustrates differences in attention peaks—fulfilling the rubric requirement for time-series visualization.
 
-### 2.3 Communities / Subreddits
+---
 
-- A **Top Subreddits** bar chart summarises *which communities* amplify the chosen domain the most.
-- This acts as a proxy for “communities or accounts that are key contributors” in the rubric.
+### 2.3 Community Amplifiers
+A bar chart displays the **top subreddits posting the domain**, helping identify which communities contribute most to its spread.
 
-### 2.4 Emotion & Tone
+---
 
-For every title, the app computes:
+### 2.4 Tone & Emotion Analysis
 
-- **Sentiment** using `vaderSentiment`  
-- **Toxicity** using `unitary/toxic-bert` (transformer classifier)  
-- **Emotion** using `cardiffnlp/twitter-roberta-base-emotion`
+For every post title, the dashboard computes:
 
-These are aggregated into:
+| Metric | Model |
+|--------|-------|
+| Sentiment | `vaderSentiment` |
+| Toxicity | `unitary/toxic-bert` |
+| Emotion | `cardiffnlp/twitter-roberta-base-emotion` |
 
-- An **Emotion Distribution** chart, and
-- Summary cards showing **average sentiment** and **average toxicity**.
+Results are visualized as:
 
-This satisfies the “Apply AI/ML” requirement, using multiple transformer-based models.
+- Emotion distribution plot  
+- Summary metrics (sentiment, toxicity)
 
-### 2.5 Topic Clustering (Narratives)
+---
 
-The dashboard runs a simple topic modelling / clustering step:
+### 2.5 Topic/Narrative Clustering
 
-- Compute **TF–IDF** vectors over the titles
-- Run **KMeans** to cluster them into a small number of groups
-- Display a preview table (`title`, `cluster`) so the analyst can
-  manually inspect the main themes.
+To understand narratives, the dashboard performs lightweight topic modeling:
 
-This acts as a lightweight topic model and semantic grouping of narratives.
+- TF-IDF vectorization
+- KMeans clustering  
+- Display of sample posts per cluster  
+
+This allows users to inspect the dominant themes associated with the domain.
+
+---
 
 ### 2.6 AI Narrative Summary
 
-For each selected domain, the dashboard also generates an **“AI Summary Report”** that explains, in plain language:
+For each domain, the dashboard automatically generates a written insight summarizing:
 
-- how frequently the domain appears
-- whether the overall tone is positive / negative / mixed
-- which subreddit is most responsible for amplification
-- when activity peaked
-- how many topic clusters were detected
+- Discussion frequency
+- Sentiment and emotional tone  
+- Subreddits driving amplification  
+- Activity peaks
+- Number of distinct narrative clusters  
 
-This is meant for **non-technical audiences** and aligns with the rubric’s “GenAI summaries of the time-series plots” idea (implemented here as programmatic narrative rather than an external LLM API).
+This supports non-technical interpretation and aligns with the rubric’s "GenAI-based summarization" recommendation.
 
 ---
 
-## 3. How to Use the Dashboard
+## 3. How to Use
 
-1. Open the hosted app in the browser.
-2. In **“Enter a news domain”**, type a domain like:
+1. Open the hosted dashboard.
+2. Input a domain such as:
    - `cnn.com`
    - `nypost.com`
    - `youtube.com`
-3. Optionally enter a **second domain** to compare.
-4. Scroll down to explore:
-   - Summary cards
-   - Trend Over Time
-   - Emotion Distribution
-   - Top Subreddits
-   - Topic Clustering table
-   - AI Summary Report
-   - Activity comparison for two domains
+3. Optionally select a second domain for comparison.
+4. Scroll through the dashboard to explore:
+   - Summary metrics  
+   - Activity over time  
+   - Emotion and toxicity maps  
+   - Top subreddits  
+   - Topic clusters  
+   - Generated narrative summary  
 
-You can repeatedly change the domains to run **interactive “what-if” investigations**.
+Users may adjust domains interactively to run exploratory investigations.
 
 ---
 
 ## 4. Technical Stack
 
-- **Frontend / Dashboard:** Streamlit
-- **Data processing:** pandas
-- **Plots:** matplotlib + seaborn
-- **ML / NLP models:**
-  - `vaderSentiment` – sentiment analysis on titles
-  - `unitary/toxic-bert` – toxicity classification
-  - `cardiffnlp/twitter-roberta-base-emotion` – emotion classification
-  - `sklearn` TF–IDF + KMeans – topic clustering
+| Component | Technology |
+|-----------|------------|
+| Interface | Streamlit |
+| Data Processing | pandas |
+| Visualizations | matplotlib, seaborn |
+| ML/NLP Models | VADER, Toxic-BERT, Twitter-RoBERTa emotion classifier |
+| Topic Modeling | TF-IDF + KMeans (scikit-learn) |
 
 ---
 
-## 5. Running Locally
-
-```bash
-# 1. Clone repo
-git clone <YOUR_REPO_URL>
-cd <REPO_NAME>
-
-# 2. Create env (optional)
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. Run the app
-streamlit run app.py
